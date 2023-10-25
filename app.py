@@ -11,7 +11,7 @@ START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
 st.title('Stock Market Prediction')
-st.subheader('By Ujwal Mojidra')
+#st.subheader('By Ujwal Mojidra')
 
 stocks = ('GOOG', 'AAPL', 'MSFT', 'GME','TSLA' , 'PYPL' , 'V' ,'ENPH', '^NSEI','TTM','SBUX','SBIN.NS','MGAM','BTC-USD', 'GC=F', 'NFT-USD', 'ETH-USD')
 

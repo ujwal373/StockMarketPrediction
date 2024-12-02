@@ -77,6 +77,11 @@ m.fit(df_train)
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
+# Plot forecast
+st.write(f"Forecast Plot for {n_years} Years")
+fig1 = plot_plotly(m, forecast)
+st.plotly_chart(fig1)
+
 # Moving Average Plot
 def plot_moving_averages():
     data['MA50'] = data['Close'].rolling(window=50).mean()

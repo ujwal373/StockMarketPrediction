@@ -1,10 +1,12 @@
-# pip install streamlit fbprophet yfinance plotly
 import streamlit as st
 from datetime import date
 import yfinance as yf
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 
 # Constants
 START = "2015-01-01"
@@ -35,12 +37,11 @@ selected_stock = st.selectbox(
 n_years = st.slider('Years of prediction:', 1, 4, 1)
 period = n_years * 365
 
-# Load data function
-@st.cache
+# Load data function with new caching
+@st.cache_data
 def load_data(ticker):
     data = yf.download(ticker, START, TODAY)
-    data.reset_index(inplace=True)
-    return data
+    return data.reset_index()  # Return the data without mutating it outside the function
 
 # Load data
 data_load_state = st.text("Loading data...")
@@ -67,7 +68,7 @@ def plot_raw_data():
 plot_raw_data()
 
 # Prepare data for Prophet
-df_train = data[['Date', 'Close']]
+df_train = data[['Date', 'Close']].copy()  # Use .copy() to avoid mutating cached data
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
 # Train Prophet model
@@ -75,23 +76,6 @@ m = Prophet()
 m.fit(df_train)
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
-
-# Display forecast data
-st.subheader("Forecast Data")
-st.write(forecast.tail())
-
-# Plot forecast
-st.write(f"Forecast Plot for {n_years} Years")
-fig1 = plot_plotly(m, forecast)
-st.plotly_chart(fig1)
-
-# Plot forecast components
-st.write("Forecast Components")
-components_fig = m.plot_components(forecast)
-st.write(components_fig)
-
-# Additional Visualizations
-st.subheader("Additional Insights")
 
 # Moving Average Plot
 def plot_moving_averages():

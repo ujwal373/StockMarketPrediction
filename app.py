@@ -1,67 +1,124 @@
 # pip install streamlit fbprophet yfinance plotly
 import streamlit as st
 from datetime import date
-
 import yfinance as yf
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
 
+# Constants
 START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
-st.title('Stock Market Prediction')
-#st.subheader('By Ujwal Mojidra')
+# Streamlit Title and Description
+st.title("Stock Market Prediction & Insights")
+st.subheader("By Ujwal Mojidra")
+st.markdown(
+    """
+    **Explore stock market trends and predict future prices using machine learning.**
+    - Select a stock ticker from the dropdown.
+    - View historical trends and predictions for up to 4 years.
+    """
+)
 
-stocks = ('GOOG', 'AAPL', 'MSFT', 'GME','TSLA' , 'PYPL' , 'V' ,'ENPH', '^NSEI','TTM','SBUX','SBIN.NS','MGAM','BTC-USD', 'GC=F', 'NFT-USD', 'ETH-USD')
+# Dropdown for stock selection
+stocks = (
+    'GOOG', 'AAPL', 'MSFT', 'GME', 'TSLA', 'PYPL', 'V', 'ENPH', '^NSEI',
+    'TTM', 'SBUX', 'SBIN.NS', 'MGAM', 'BTC-USD', 'GC=F', 'NFT-USD', 'ETH-USD'
+)
+selected_stock = st.selectbox(
+    'Choose your favorite stock for forecasting using their ticker:',
+    stocks
+)
 
-selected_stock = st.selectbox('Choose your favorite Stocks for forecasting using their StockTicker names.', stocks)
-
-n_years = st.slider('Years of prediction:', 1, 4)
+# Slider for prediction years
+n_years = st.slider('Years of prediction:', 1, 4, 1)
 period = n_years * 365
 
-
+# Load data function
 @st.cache
 def load_data(ticker):
     data = yf.download(ticker, START, TODAY)
     data.reset_index(inplace=True)
     return data
 
-	
-data_load_state = st.text('Loading data...')
+# Load data
+data_load_state = st.text("Loading data...")
 data = load_data(selected_stock)
-data_load_state.text('Loading data... done!')
+data_load_state.text("Loading data... done!")
 
-st.subheader('Raw data')
+# Display raw data
+st.subheader("Raw Data")
 st.write(data.tail())
 
-# Plot raw data
+# Function to plot raw data
 def plot_raw_data():
-	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
-	fig.layout.update(title_text='Time Series data with Rangeslider', xaxis_rangeslider_visible=True)
-	st.plotly_chart(fig)
-	
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="Stock Open", line=dict(color='blue')))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Stock Close", line=dict(color='orange')))
+    fig.layout.update(
+        title_text="Time Series Data with Range Slider",
+        xaxis_rangeslider_visible=True,
+        template="plotly_dark"
+    )
+    st.plotly_chart(fig)
+
+# Display raw data plot
 plot_raw_data()
 
-# Predict forecast with Prophet.
-df_train = data[['Date','Close']]
+# Prepare data for Prophet
+df_train = data[['Date', 'Close']]
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
+# Train Prophet model
 m = Prophet()
 m.fit(df_train)
 future = m.make_future_dataframe(periods=period)
 forecast = m.predict(future)
 
-# Show and plot forecast
-st.subheader('Forecast data')
+# Display forecast data
+st.subheader("Forecast Data")
 st.write(forecast.tail())
-    
-st.write(f'Forecast plot for {n_years} years')
+
+# Plot forecast
+st.write(f"Forecast Plot for {n_years} Years")
 fig1 = plot_plotly(m, forecast)
 st.plotly_chart(fig1)
 
-st.write("Forecast components")
-fig2 = m.plot_components(forecast)
-st.write(fig2)
+# Plot forecast components
+st.write("Forecast Components")
+components_fig = m.plot_components(forecast)
+st.write(components_fig)
+
+# Additional Visualizations
+st.subheader("Additional Insights")
+
+# Moving Average Plot
+def plot_moving_averages():
+    data['MA50'] = data['Close'].rolling(window=50).mean()
+    data['MA200'] = data['Close'].rolling(window=200).mean()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="Close Price", line=dict(color='blue')))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['MA50'], name="50-Day MA", line=dict(color='red', dash='dash')))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['MA200'], name="200-Day MA", line=dict(color='green', dash='dot')))
+    fig.layout.update(
+        title_text="Moving Averages (50-Day & 200-Day)",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        template="plotly_dark"
+    )
+    st.plotly_chart(fig)
+
+plot_moving_averages()
+
+# Volume Analysis
+st.subheader("Volume Analysis")
+fig_volume = go.Figure()
+fig_volume.add_trace(go.Bar(x=data['Date'], y=data['Volume'], name="Volume", marker=dict(color='purple')))
+fig_volume.layout.update(
+    title_text="Stock Volume Over Time",
+    xaxis_title="Date",
+    yaxis_title="Volume",
+    template="plotly_dark"
+)
+st.plotly_chart(fig_volume)
